@@ -1,3 +1,13 @@
---- lang.eval -- the eval meta function: evaluate an AST and return the result value.
+--- lang.eval -- the eval meta functions: evaluate an AST and return the result value.
 --- Called as eval.eval(lang, ast) -> result value (no serialization).
 --- The eval engine stays Rust (ADR-0077 "Special"); this .hnl declares the interface.
+---
+--- eval.eval(lang, ast)       -- RAW eval: parse-time AST -> value (dynamic =
+---                               type.unknown; runtime-minted terms are legal
+---                               values, ADR-0154 sec.6 — evaluated, not checked)
+--- eval.checked(lang, src)    -- CHECKED eval: lex -> parse_raw -> typecheck ->
+---                               desugar -> eval; returns {value: V, type: T}.
+--- eval.checked(lang, ast)    -- same on a tagged __ast__ / serialized Ast.
+---                               A typecheck error is an EvalError — the checked
+---                               path never evaluates an unchecked term
+---                               (phase-2 spec WS-G).

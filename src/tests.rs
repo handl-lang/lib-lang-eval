@@ -45,6 +45,7 @@ struct MockHandle {
     eval_err: Option<LangError>,
     last_ast: Rc<RefCell<Option<Ast>>>,
     canned_result: Value,
+    check_result: Option<handl_runtime::TypecheckResult>,
 }
 
 impl RuntimeHandle for MockHandle {
@@ -65,7 +66,9 @@ impl RuntimeHandle for MockHandle {
     }
 
     fn typecheck(&self, _ast: &Ast) -> Result<handl_runtime::TypecheckResult, LangError> {
-        Err(LangError::NotImplemented)
+        self.check_result
+            .clone()
+            .ok_or(LangError::NotImplemented)
     }
 
     fn compile(
@@ -85,6 +88,7 @@ struct MockFactory {
     build_err: Option<LangError>,
     eval_err: Option<LangError>,
     canned_result: Value,
+    check_result: Option<handl_runtime::TypecheckResult>,
     last_ast: Rc<RefCell<Option<Ast>>>,
 }
 
@@ -94,8 +98,14 @@ impl MockFactory {
             build_err: None,
             eval_err: None,
             canned_result: json!(42),
+            check_result: None,
             last_ast: Rc::new(RefCell::new(None)),
         }
+    }
+
+    fn with_check_result(mut self, r: handl_runtime::TypecheckResult) -> Self {
+        self.check_result = Some(r);
+        self
     }
 
     fn with_build_err(mut self, e: LangError) -> Self {
@@ -131,6 +141,7 @@ impl RuntimeFactory for MockFactory {
             eval_err: self.eval_err.clone(),
             last_ast: Rc::clone(&self.last_ast),
             canned_result: self.canned_result.clone(),
+            check_result: self.check_result.clone(),
         }))
     }
 }
@@ -187,12 +198,77 @@ fn module_function_lookup() {
     assert!(module.function("nope").is_none());
 }
 
+fn ok_check() -> handl_runtime::TypecheckResult {
+    handl_runtime::TypecheckResult {
+        typ: json!({"__sym__": {"handle": 1, "name": "Int", "parent": null, "type": null}}),
+        diagnostics: Vec::new(),
+        node_types: Default::default(),
+        signature: Value::Null,
+    }
+}
+
+#[test]
+fn checked_lookup_resolves_flat_and_qualified_name() {
+    let module = make_module(Rc::new(MockFactory::new()));
+    assert!(ModuleLookup::lookup(&module, "checked").is_some());
+    assert!(ModuleLookup::lookup(&module, "eval.checked").is_some());
+}
+
+#[test]
+fn checked_on_ast_returns_value_and_type() {
+    let factory = Rc::new(MockFactory::new().with_check_result(ok_check()));
+    let module = make_module(factory);
+    let checked = module.function("checked").expect("checked fn");
+    let mut ctx = EvalContext::new();
+    let out = checked
+        .call(&[language_value(&Language::new()), tagged_ast_arg()], &mut ctx)
+        .expect("checked on ast");
+    assert_eq!(out["value"], json!(42));
+    assert_eq!(out["type"]["__sym__"]["name"], "Int");
+}
+
+#[test]
+fn checked_on_typecheck_error_never_evals() {
+    let bad = handl_runtime::TypecheckResult {
+        typ: Value::Null,
+        diagnostics: vec![handl_runtime::TypecheckDiagnostic {
+            severity: "error".into(),
+            message: "unbound var".into(),
+            span: None,
+        }],
+        node_types: Default::default(),
+        signature: Value::Null,
+    };
+    let factory = Rc::new(MockFactory::new().with_check_result(bad));
+    let module = make_module(factory);
+    let checked = module.function("checked").expect("checked fn");
+    let mut ctx = EvalContext::new();
+    let err = checked
+        .call(&[language_value(&Language::new()), tagged_ast_arg()], &mut ctx)
+        .unwrap_err();
+    assert!(err.to_string().contains("typecheck errors"));
+}
+
+#[test]
+fn checked_without_typecheck_engine_errors_honestly() {
+    // The mock's `typecheck` reports NotImplemented — the checked path
+    // propagates it rather than falling back to raw eval.
+    let module = make_module(Rc::new(MockFactory::new()));
+    let checked = module.function("checked").expect("checked fn");
+    let mut ctx = EvalContext::new();
+    let err = checked
+        .call(&[language_value(&Language::new()), tagged_ast_arg()], &mut ctx)
+        .unwrap_err();
+    assert!(err.to_string().contains("eval.checked"));
+}
+
 #[test]
 fn module_functions_lists_eval() {
     let module = make_module(Rc::new(MockFactory::new()));
     let fns = module.functions();
-    assert_eq!(fns.len(), 1);
+    assert_eq!(fns.len(), 2);
     assert_eq!(fns[0].0, "eval");
+    assert_eq!(fns[1].0, "checked");
 }
 
 // ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 
 [[repos]]
 name = "handl-lang/lib-lang-eval"
-dir = "/home/luis/GitHub/handl-lang/lib-lang-eval"
+dir = "~//GitHub/handl-lang/lib-lang-eval"
 branch = "refs/heads/main"
   [repos.runner]
   kind = "script"

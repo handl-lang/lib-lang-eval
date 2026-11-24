@@ -1,0 +1,12 @@
+-- lib-lang-eval: the `lang_eval` module — the `eval` meta function as
+-- a composable `plugin-lib-*` leaf crate. Transitional layout: the
+-- .hnl surface is `handl-packages/lang_eval/lang_eval.hnl`; the eval
+-- engine stays Rust.
+{
+  modules: ["lang_eval"],
+  name: "lang_eval",
+  description: "The eval meta function — evaluate a handl term/AST in the runtime.",
+  license: "MIT",
+  keywords: ["eval", "meta", "ast", "lang", "handl"],
+  homepage: "https://github.com/handl-lang/lib-lang-eval",
+}

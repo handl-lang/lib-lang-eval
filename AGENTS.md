@@ -1,3 +1,41 @@
+# lib-lang-eval
+
+`handl-plugin-lib-lang-eval` — the `eval` meta function as a composable
+`plugin-lib-*` leaf crate.
+
+## Layout
+
+| path | role |
+| --- | --- |
+| `handl-packages/lang_eval/lang_eval.hnl` | the .hnl surface |
+| `src/lib.rs`, `src/tests.rs` | the Rust crate |
+| `pkg.hnl` | package manifest |
+| `scripts/hnl-gate.sh` | shared hnl typecheck/lint/test gate |
+| `ci.sh` | bupha entry → hnl-gate.sh |
+
+## Contract
+
+- One callable: `eval.eval(lang, ast)` — accepts a tagged `__ast__`
+  value or raw JSON `Ast`, builds a sub-runtime via `RuntimeFactory`,
+  evaluates, returns the result value directly.
+- Leaf crate: `handl-runtime`/`handl-language`/`handl-platform`/
+  `handl-plugin-module` only — no engine impl crates, no `handl-kit-*`.
+- Same `Rc<dyn RuntimeFactory>` wiring caveat as the other `lang-*`
+  meta crates (not `Send + Sync`; see `src/lib.rs`).
+- Sibling-repo deps are git deps (`branch = "main"`); `[patch]` tables
+  resolve them from sibling checkouts.
+
+## Verification
+
+```bash
+cargo test    # the Rust suite
+bash ci.sh    # the bupha gate — delegates to scripts/hnl-gate.sh
+```
+
+## License
+
+MIT.
+
 <!-- myco:agent-awareness -->
 
 ## Agent awareness

@@ -2,6 +2,7 @@
 -- a composable `plugin-lib-*` leaf crate. Transitional layout: the
 -- .hnl surface is `handl-packages/lang_eval/lang_eval.hnl`; the eval
 -- engine stays Rust.
+-- test_coverage "none": comment-only interface decl — the eval engine stays Rust.
 {
   modules: ["lang_eval"],
   name: "lang-eval",
@@ -9,4 +10,5 @@
   license: "MIT",
   keywords: ["eval", "meta", "ast", "lang", "handl"],
   homepage: "https://github.com/handl-lang/lib-lang-eval",
+  test_coverage: "none",
 }

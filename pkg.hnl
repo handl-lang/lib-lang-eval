@@ -4,7 +4,7 @@
 -- engine stays Rust.
 {
   modules: ["lang_eval"],
-  name: "lang_eval",
+  name: "lang-eval",
   description: "The eval meta function — evaluate a handl term/AST in the runtime.",
   license: "MIT",
   keywords: ["eval", "meta", "ast", "lang", "handl"],
